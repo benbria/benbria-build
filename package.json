@@ -1,6 +1,6 @@
 {
   "name": "benbria-build",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "dependencies": {
     "argparse": "~0.1.15",
@@ -23,7 +23,6 @@
     "node": ">=0.8.26"
   },
   "bin": {
-    "benbria-configure-ninja": "./bin/benbria-configure-ninja",
-    "benbria-package-check": "./bin/benbria-package-check"
+    "benbria-configure-ninja": "./bin/benbria-configure-ninja"
   }
 }

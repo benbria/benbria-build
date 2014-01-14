@@ -73,13 +73,13 @@ findScript = (scriptName) ->
 # This will find a node_modules directory in the current directory or an ancestor of the current
 # directory that contains ".bin/#{command}" and return the relative path to the command.
 #
-findCommand = (command) ->
+findCommand = (command, fromDir=null) ->
     if command is "loop-configure-ninja"
         answer = path.relative config.ninjaFilePath, config.configureNinjaScript
     else
         answer = null
         done = false
-        currentDir = config.ninjaFilePath
+        currentDir = fromDir or config.ninjaFilePath
 
         while !answer and !done
             currentDir = parentDirSync currentDir, "node_modules"
@@ -103,7 +103,9 @@ findCommand = (command) ->
 findLocalCommand = (command) ->
     answer = path.resolve __dirname, path.join("..", "node_modules", ".bin", command)
     if !fs.existsSync answer
-        throw new Error "Missing internal command #{command}."
+        # This can happen if the project which is requiring benbria-build already requires one
+        # of our dependencies - the command will be in the parent project.
+        answer = findCommand command, __dirname
     return answer
 
 # Generate the Ninja rule, and edge, which builds the `build.ninja` file itself.
@@ -125,12 +127,7 @@ makeSystemEdges = (ninja, optionString, options) ->
          .description 'CONFIGURE'
     ninja.edge(config.ninjaFile)
         .using('configure')
-        .need([
-            findCommand('loop-configure-ninja'),
-            # FIXME: call explicitly configure from task runner when
-            #        a file have been added or removed
-            '$builddir/config-puppet'])
-    ninja.edge('$builddir/config-puppet')
+        .need([findCommand('loop-configure-ninja')])
 
 # Store the command line making functions.
 #

@@ -1,17 +1,5 @@
 # Common build tools for Benbria projects
 
-## benbria-package-check
-
-Run in your project's root directory.  This will check to see if various configuration files have
-changed, and if they have, run the appropriate commands to update dependencies:
-
-* `package.json` and `npm-shrinkwrap.json` - Run `npm install`
-* `Gemfile` - Run `bundle install`
-* `bower.json` - Run `bower install`
-
-Changes are detected by computing the MD5 hash of each file, so this requires `md5sum` on Linux,
-or `md5` on mac.  Hashes are stored in ./build.
-
 ## build-configure-ninja
 
 This script configures the [Ninja](http://martine.github.io/ninja/) build process.
