@@ -15,6 +15,6 @@
     "node": ">=0.8.26"
   },
   "bin": {
-    "loop-configure-ninja": "./bin/loop-configure-ninja"
+    "benbria-configure-ninja": "./bin/benbria-configure-ninja"
   }
 }
