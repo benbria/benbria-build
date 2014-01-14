@@ -1,0 +1,6 @@
+#!/bin/sh
+':' //; exec "$(command -v nodejs || command -v node)" "$0" "$@"
+
+require('coffee-script');
+loopConfigureNinja = require('../src/loop-configure-ninja');
+loopConfigureNinja(__filename);
