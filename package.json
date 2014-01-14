@@ -1,20 +1,29 @@
 {
   "name": "benbria-build",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "dependencies": {
     "argparse": "~0.1.15",
+    "async": "0.2.9",
     "coffee-script": "~1.6.3",
-    "lodash": "~2.4.1",
+    "coffeelint": "0.5.7",
+    "colors": "~0.6.0-1",
+    "commander": "~2.1.0",
+    "dep-graph": "1.1.0",
     "glob": "~3.2.8",
     "globule": "~0.2.0",
-    "yadsil": "~0.1.1",
-    "ninja-build-gen": "~0.1.3"
+    "i18n-extractor": "~0.2.0",
+    "lodash": "~2.4.1",
+    "ninja-build-gen": "~0.1.3",
+    "snockets-cli": "0.1.1",
+    "uglify-js": "2.4.0",
+    "yadsil": "~0.1.1"
   },
   "engines": {
     "node": ">=0.8.26"
   },
   "bin": {
-    "benbria-configure-ninja": "./bin/benbria-configure-ninja"
+    "benbria-configure-ninja": "./bin/benbria-configure-ninja",
+    "benbria-package-check": "./bin/benbria-package-check"
   }
 }

@@ -6,38 +6,7 @@
 # [Ninja manual](http://martine.github.io/ninja/manual.html) for more
 # information about this file syntax.
 #
-# Note that if you want to use coffee-script or streamline, you need to have them installed
-# in your project, either as dependencies or dev-dependencies.  For streamline 0.8.x, you
-# also need to pass `--streamline8` as an option.
-#
-# TODO: What are dependencies for stylus, sass, jade, handlebars?
-#
-# This will generate a ninja file with the following edges:
-#
-# * `build.ninja` - Re-run this target to pick up new files.
-# * `lint` - Lint all source files.
-# * `lib` - Compile all source files in /src to /lib.  This will automatically include:
-#   * `*.js` - Copied directly over.
-#   * `*.coffee`, `*.litcoffee`, `*.coffee.md` - Compiled to .coffee file.  Sourcemap will be
-#     generated.
-#   * `*._js`, `*._coffee` - Compiled with streamline compiler.  Souremaps will be generated if your
-#     streamline compiler is v0.10.x or better.  Note you need to specify --streamline8 for
-#     v0.8.x.  Lower than v0.8.x is not supported.
-# * `debug-assets` - Build files in the assets folders.  Compiled files go into build/assets/debug.
-#   Any files which start with an "_" will be excluded from the build:
-#   * `assets/js/*.coffee`, `assets/js/*.js` - Javascript: These will be compiled with snockets support.
-#   * `assets/*.sass`, `assets/*.scss`, `assets/*.styl` - CSS.
-#   * `assets/template/*/*.jade` - Handlebars/jade templates.
-#   * `assets/releasenote/*.jade` - Handlebars/jade templates.
-# * `release-assets` - Same as `debug-assets` except compiled files go into build/assets/release.
-#   Also this will run all files through the "fingerprint" process., producing a
-#   build/release/fingerprints.json.
-#
-#
-# ## Future improvements:
-#
-# * Should support streamline in /assets.
-#
+# See this project's README.md for more details.
 
 packageJson     = require '../package.json'
 ld              = require 'lodash'
@@ -54,7 +23,8 @@ config.ninjaFilePath = process.cwd()
 config.ninjaFile = "build.ninja"
 config.configureNinjaScript = __filename
 config.streamlineVersion = 10
-config.extraStreamlineOpts = "" # --cb _cb
+config.streamlineOpts = "" # --cb _cb
+config.stylusOpts = ""
 
 # Folder and file paths to use across the configuration.
 fp = {}
@@ -91,7 +61,7 @@ parentDirSync = (dir, fileToFind) ->
 # Returns the path to a script, relative to the directory we're writing the build.ninja file into.
 findScript = (scriptName) ->
     # Look for this script in the scripts dir
-    scriptsDir = path.resolve __dirname, "../src"
+    scriptsDir = path.resolve __dirname, path.join("..", "src")
     scriptFullPath = path.resolve scriptsDir, scriptName
     if !fs.existsSync scriptFullPath
         throw new Error("Could not find script #{scriptName}")
@@ -116,7 +86,7 @@ findCommand = (command) ->
             if currentDir == null
                 done = true
             else
-                commandFullPath = path.resolve currentDir, "node_modules/.bin/#{command}"
+                commandFullPath = path.resolve currentDir, path.join("node_modules", ".bin", command)
                 if fs.existsSync commandFullPath
                     answer = path.relative config.ninjaFilePath, commandFullPath
                 else
@@ -129,7 +99,12 @@ findCommand = (command) ->
 
     return answer
 
-
+# Finds a command from this project's node_modules.
+findLocalCommand = (command) ->
+    answer = path.resolve __dirname, path.join("..", "node_modules", ".bin", command)
+    if !fs.existsSync answer
+        throw new Error "Missing internal command #{command}."
+    return answer
 
 # Generate the Ninja rule, and edge, which builds the `build.ninja` file itself.
 # This edge is always executed first by Ninja, to ensure it has the lastest
@@ -137,16 +112,16 @@ findCommand = (command) ->
 # configure, supposed to stay the same as the original call.
 #
 makeSystemEdges = (ninja, optionString, options) ->
-    ninja.assign 'coffee', 'node_modules/.bin/coffee'
+    ninja.assign 'coffee', findCommand 'coffee'
     if config.streamlineVersion < 10
         ninja.assign 'coffeeStreamline', "node --harmony #{findCommand '_coffee'}"
         ninja.assign 'jsStreamline', "node --harmony #{findCommand '_node'}"
     else
         ninja.assign 'coffeeStreamline', findCommand '_coffee'
         ninja.assign 'jsStreamline', findCommand '_node'
-    ninja.assign 'uglifyjs', findCommand "uglifyjs"
+    ninja.assign 'uglifyjs', findLocalCommand "uglifyjs"
     ninja.rule('configure')
-         .run("$coffee #{findCommand('loop-configure-ninja')}#{optionString}")
+         .run("#{findCommand('loop-configure-ninja')}#{optionString}")
          .description 'CONFIGURE'
     ninja.edge(config.ninjaFile)
         .using('configure')
@@ -173,21 +148,19 @@ makeCli.sass = (isRelease) ->
 # Make a Snockets compilation command line.
 #
 makeCli.snockets = (isRelease) ->
-    cli = 'node_modules/.bin/snockets $cliOptions' \
-        + ' $in -o $out --dep-file $out.d'
+    cli = "#{findLocalCommand 'snockets'} $cliOptions $in -o $out --dep-file $out.d"
     cli += ' --minify' if isRelease
-    cli += ' && node_modules/.bin/i18n-extract'
+    cli += " && #{findLocalCommand 'i18n-extract'}"
     cli += ' -f \'(i18n)\' -k \'$$1\' $out > $out.i18n'
     cli
 
 # Make a Stylus compilation command line.
 #
 makeCli.stylus = (isRelease) ->
-    cli = 'node_modules/.bin/stylus $in -o $$(dirname $out) --import' \
-        + ' node_modules/nib/index.styl'
+    cli = "#{findCommand 'stylus'} $in -o $$(dirname $out) #{config.stylusOpts}"
     cli += if isRelease then ' --compress' else ' --line-numbers'
-    cli += " > /dev/null && $coffee #{findScript "stylus-dep.coffee"} $in" \
-         + ' --dep-file $out.d $cliOptions'
+    cli += " > /dev/null && $coffee #{findScript "stylus-dep.coffee"} $in"
+    cli += ' --dep-file $out.d $cliOptions'
     cli
 
 # Make a Template compilation command line.
@@ -261,20 +234,20 @@ makeCommonRules = (ninja, options) ->
         # streamline will often crash in 0.8.0.
         makeSimpleRule ninja, {
             name: 'coffeeStreamline',
-            command: "$coffeeStreamline #{config.extraStreamlineOpts} -lp -c $in"
+            command: "$coffeeStreamline #{config.streamlineOpts} -lp -c $in"
         }
         makeSimpleRule ninja, {
             name: 'jsStreamline',
-            command: "$jsStreamline #{config.extraStreamlineOpts} -lp -c $in"
+            command: "$jsStreamline #{config.streamlineOpts} -lp -c $in"
         }
     else
         makeSimpleRule ninja, {
             name: 'coffeeStreamline',
-            command: "$coffeeStreamline #{config.extraStreamlineOpts} -m -lp -c $in"
+            command: "$coffeeStreamline #{config.streamlineOpts} -m -lp -c $in"
         }
         makeSimpleRule ninja, {
             name: 'jsStreamline',
-            command: "$jsStreamline #{config.extraStreamlineOpts} -m -lp -c $in"
+            command: "$jsStreamline #{config.streamlineOpts} -m -lp -c $in"
         }
 
     makeSimpleRule ninja, {name: 'copy', command: 'cp $in $out'}
@@ -507,7 +480,7 @@ makeAssetEdges = (ninja) ->
         snockets    : 'js/**/[a-z0-9]*.coffee'
         stylus      : '**/[a-z0-9]*.styl'
         template    : '[a-z0-9]*'
-        releasenote : '[a-z0-9]*.jade' # TODO: Why does this only pick up the release note files?
+        releasenote : '[a-z0-9]*.jade'
     }
     assetPaths = {}
     configNames = ['debug', 'release']
@@ -624,16 +597,6 @@ collectCoffeeFiles = (ext, options) ->
     log.info "found #{coffeeFiles.length} #{ext} scripts"
     coffeeFiles
 
-# Build the option string provided to sub-commands.
-#
-getOptionString = (options) ->
-    str = ''
-    str += ' --no-lint' unless options.lint
-    str += ' --ninja-color' if options.ninjaColor
-    str += ' --streamline8' if options.streamline8
-    str += " --streamline-args '#{options.streamlineArgs}'" if options.streamlineArgs
-    str
-
 # Generate a proper `build.ninja` file for subsequent Ninja builds.
 #
 makeNinja = (options) ->
@@ -656,6 +619,17 @@ makeNinja = (options) ->
     ninja.edge('all').from(['debug-assets', 'release-assets', 'lib'])
     ninja.byDefault 'all'
     ninja
+
+# Build the option string that was used to run this instance of benbria-configure-ninja.
+getOptionString = (options) ->
+    str = ''
+    str += ' --no-lint' unless options.lint
+    str += ' --ninja-color' if options.ninjaColor
+    str += ' --streamline8' if options.streamline8
+    str += " --streamline-opts '#{options.streamlineOpts}'" if options.streamlineOpts
+    str += " --stylus-opts '#{options.stylusOpts}'" if options.stylusOpts
+    return str
+
 
 # Get configure options using commander.js.
 #
@@ -690,11 +664,23 @@ getOptions = ->
         help: "Use streamline 0.8.x command line arguments (instead of 0.10.x)"
         nargs: 0
 
-    parser.addArgument [ '--streamline-args' ],
-        help: "Extra args for streamline compilers"
-        metavar: "args"
-        dest: "streamlineArgs"
+    parser.addArgument [ '--streamline-opts' ],
+        help: "Extra options for streamline compilers"
+        metavar: "opts"
+        dest: "streamlineOpts"
         defaultValue: ''
+
+    parser.addArgument [ '--stylus-opts' ],
+        help: "Extra options for stylus"
+        metavar: "opts"
+        dest: "stylusOpts"
+        defaultValue: ''
+
+    # ***************************
+    #
+    # If you add arguments here, add them them to getOptionString() above, too!
+    #
+    # ***************************
 
     options = parser.parseArgs(process.argv[2..])
     options.lint = !options.noLint
@@ -705,7 +691,7 @@ getOptions = ->
     if log.color()
         options.ninjaColor = true
 
-    options
+    return options
 
 # Entry point. Build the Ninja manifest and save it.
 #
@@ -715,7 +701,8 @@ module.exports = (loopConfigureNinjaScript) ->
     options = getOptions()
 
     if options.streamline8 then config.streamlineVersion = 8
-    config.extraStreamlineOpts = options.streamlineArgs
+    config.streamlineOpts = options.streamlineOpts
+    config.stylusOpts = options.stylusOpts
 
     ninja = makeNinja(options)
     ninjaFile = path.resolve(config.ninjaFilePath, config.ninjaFile)
