@@ -3,16 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "argparse": "~0.1.15",
+    "coffee-script": "~1.6.3",
     "lodash": "~2.4.1",
-    "commander": "~2.1.0",
     "glob": "~3.2.8",
     "globule": "~0.2.0",
     "yadsil": "~0.1.1",
-    "ninja-build-gen": "~0.1.3",
-    "coffee-script": "~1.6.3"
-  },
-  "scripts": {
-    "test": "./bin/mocha-test"
+    "ninja-build-gen": "~0.1.3"
   },
   "engines": {
     "node": ">=0.8.26"

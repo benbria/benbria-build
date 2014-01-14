@@ -39,6 +39,7 @@
 # * Should support streamline in /assets.
 #
 
+packageJson     = require '../package.json'
 ld              = require 'lodash'
 commander       = require 'commander'
 fs              = require 'fs'
@@ -145,7 +146,7 @@ makeSystemEdges = (ninja, optionString, options) ->
         ninja.assign 'jsStreamline', findCommand '_node'
     ninja.assign 'uglifyjs', findCommand "uglifyjs"
     ninja.rule('configure')
-         .run("$coffee #{findCommand('loop-configure-ninja')} #{optionString}")
+         .run("$coffee #{findCommand('loop-configure-ninja')}#{optionString}")
          .description 'CONFIGURE'
     ninja.edge(config.ninjaFile)
         .using('configure')
@@ -657,19 +658,52 @@ makeNinja = (options) ->
 # Get configure options using commander.js.
 #
 getOptions = ->
-    commander
-        .usage('[options]')
-        .option('--no-lint',       'disable coffee linting')
-        .option('-v, --verbose',   'show information on configuration')
-        .option('--color', 'force color display out of a TTY')
-        .option('--ninja-color', 'force color on ninja scripts')
-    commander.parse(process.argv)
-    commander.color = true if commander.ninjaColor
-    log.verbose commander.verbose
-    log.color commander.color
+    ArgumentParser = require('argparse').ArgumentParser
+    parser = new ArgumentParser
+        version: packageJson.version
+        addHelp: true
+        description: """
+            Generates a ninja.build file for a coffeescript project.
+            """
+
+    parser.addArgument [ '--verbose' ],
+        help: "Verbose output"
+        nargs: 0
+
+    parser.addArgument [ '--no-lint' ],
+        help: "Disable coffee linting."
+        dest: "noLint"
+        nargs: 0
+
+    parser.addArgument [ '--color' ],
+        help: "Force color display out of a TTY."
+        nargs: 0
+
+    parser.addArgument [ '--ninja-color' ],
+        help: "Force color on ninja scripts."
+        dest: "ninjaColor"
+        nargs: 0
+
+    parser.addArgument [ '--streamline8' ],
+        help: "Use streamline 0.8.x command line arguments (instead of 0.10.x)"
+        nargs: 0
+
+    parser.addArgument [ '--streamline-args' ],
+        help: "Extra args for streamline compilers"
+        metavar: "args"
+        dest: "streamlineArgs"
+        defaultValue: ''
+
+    options = parser.parseArgs(process.argv[2..])
+    options.lint = !options.noLint
+
+    options.color = true if options.ninjaColor
+    log.verbose options.verbose
+    log.color options.color
     if log.color()
-        commander.ninjaColor = true
-    commander
+        options.ninjaColor = true
+
+    options
 
 # Entry point. Build the Ninja manifest and save it.
 #
@@ -677,6 +711,10 @@ module.exports = (loopConfigureNinjaScript) ->
     config.configureNinjaScript = loopConfigureNinjaScript
 
     options = getOptions()
+
+    if options.streamline8 then config.streamlineVersion = 8
+    config.extraStreamlineOpts = options.streamlineArgs
+
     ninja = makeNinja(options)
     ninjaFile = path.resolve(config.ninjaFilePath, config.ninjaFile)
     ninja.save ninjaFile
