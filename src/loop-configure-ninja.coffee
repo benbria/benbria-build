@@ -630,6 +630,8 @@ getOptionString = (options) ->
     str = ''
     str += ' --no-lint' unless options.lint
     str += ' --ninja-color' if options.ninjaColor
+    str += ' --streamline8' if options.streamline8
+    str += " --streamline-args '#{options.streamlineArgs}'" if options.streamlineArgs
     str
 
 # Generate a proper `build.ninja` file for subsequent Ninja builds.
