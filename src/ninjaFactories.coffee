@@ -283,12 +283,15 @@ defineFactory "template", {
 # releasenote compiler
 defineFactory "releasenote", {
     initialize: (ninja, config, log) ->
+        @includes = null
         try
             includeFile = "assets/releasenote/INCLUDE.json"
-            @includes = JSON.parse(fs.readFileSync(includeFile, 'utf8')).include
+            if fs.existsSync includeFile
+                @includes = JSON.parse(fs.readFileSync(includeFile, 'utf8')).include
+            else
+                log.debug "Disabling releasenote - #{includeFile} does not exist."
         catch err
             log.warn "Error parsing #{includeFile}", err.stack
-            @includes = null
 
     active: (config, log) -> @includes != null
 
