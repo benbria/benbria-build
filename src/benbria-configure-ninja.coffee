@@ -384,8 +384,11 @@ makeAssetEdges = (ninja) ->
 
     ninja.edge('debug-assets').from(assetPaths.debug)
     if assetPaths.release.length > 0
+        log.debug "Making fingerprint edge for #{assetPaths.release.length} release assets"
         fingerprintFile = makeFingerprintEdge ninja, assetPaths.release
-    ninja.edge('release-assets').from(fingerprintFile)
+        ninja.edge('release-assets').from(fingerprintFile)
+    else
+        ninja.edge('release-assets')
 
 # Make edges required for compiling everything in /src into /lib.
 #
