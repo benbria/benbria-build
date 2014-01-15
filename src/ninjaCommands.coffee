@@ -105,7 +105,7 @@ exports.findLocalCommand = (commandName, options={}) ->
     else
         # This can happen if the project which is requiring benbria-build already requires one
         # of our dependencies - the command will be in the parent project.
-        answer = findCommand commandName, {
+        answer = exports.findCommand commandName, {
             ninjaFilePath: options.ninjaFilePath,
             configureNinjaScript: options.configureNinjaScript,
             fromDir: __dirname
