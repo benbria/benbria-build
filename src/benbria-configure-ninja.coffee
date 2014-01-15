@@ -150,17 +150,18 @@ makeAssetEdges = (ninja) ->
     assetPaths = {}
     configNames = ['debug', 'release']
     for configName in configNames
+        log.debug "Making #{configName} asset edges"
         assetPaths[configName] = []
         factories.forActiveFactory config, log, (factory) ->
-            if factory.files and factory.makeAssetEdge
-                log.debug "Making asset edges for #{configName} - #{factory.name}"
+            if factory.assetFiles and factory.makeAssetEdge
+                log.debug "  #{factory.name}"
                 mappingOptions = simpleMapOpt(
                     fp.assets,
                     path.join(fp.buildAssets, configName),
                     factory.targetExt or '.js')
 
                 # Find the files we need to compile
-                sourceFileNames = globule.find(factory.files, mappingOptions)
+                sourceFileNames = globule.find(factory.assetFiles, mappingOptions)
 
                 # Generate edges for each file
                 for match in globule.mapping(sourceFileNames, mappingOptions)
@@ -182,9 +183,10 @@ makeAssetEdges = (ninja) ->
 makeSourceEdges = (ninja) ->
     destFiles = []
 
+    log.debug "Making src edges"
     factories.forActiveFactory config, log, (factory) ->
         if factory.files and factory.makeSrcEdge
-            log.debug "Making src edges for #{factory.name}"
+            log.debug "  #{factory.name}"
             mappingOptions = simpleMapOpt('src', 'lib', factory.targetExt or '.js')
 
             # Find the files we need to compile
@@ -225,7 +227,7 @@ makeNinja = (options) ->
 
     ninja = ninjaBuilder('1.3', 'build')
 
-    factories.forActiveFactory config, log, (factory) ->
+    factories.forEachFactory (factory) ->
         factory.initialize?(ninja, config, log)
 
     ninja.header warnMessage

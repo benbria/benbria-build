@@ -40,7 +40,9 @@
 # * `log` - A log to write to.
 #
 path = require 'path'
-ld = require 'lodash'
+ld   = require 'lodash'
+fs   = require 'fs'
+glob = require 'glob'
 {findCommandIfExists, findScript, findLocalCommand} = require './ninjaCommands'
 
 getCommand = (config, log, commandName, desc) ->
@@ -50,17 +52,10 @@ getCommand = (config, log, commandName, desc) ->
         log.warn "#{commandName} not found - disabling #{desc} support."
     return answer
 
-exports.factories = {}
 allFactories = []
 
 defineFactory = exports.defineFactory = (name, factory) ->
-    if !ld.isArray types then types = [types]
-
     factory.name = name
-
-    for type in types
-        exports.factories[type] ?= {}
-        exports.factories[type][name] = factory
     allFactories.push factory
 
 isFactoryActive = (factory, config, log) ->
@@ -75,18 +70,13 @@ isFactoryActive = (factory, config, log) ->
 
     return active
 
+exports.forEachFactory = (fn) ->
+    for factory in allFactories
+        fn(factory)
+
 # Run a command for every factory available.
-exports.forActiveFactory = (config, log, options, fn) ->
-    if !fn
-        fn = options
-        options = {}
-
-    if options.type
-        factoryList = ld.values exports.factories[options.type]
-    else
-        factoryList = allFactories
-
-    for factory in factoryList
+exports.forActiveFactory = (config, log, fn) ->
+    for factory in allFactories
         if isFactoryActive(factory, config, log)
             fn(factory)
 
@@ -97,9 +87,10 @@ exports.forActiveFactory = (config, log, options, fn) ->
 
 # Coffee compiler
 defineFactory "coffee", {
+    initialize: (ninja, config, log) ->
+        @_command = getCommand config, log, 'coffee'
+
     active: (config, log) ->
-        if @_command is undefined
-            @_command = getCommand config, log, 'coffee'
         return @_command?
 
     assignments: (ninja, config) ->
@@ -128,16 +119,17 @@ defineFactory "js", {
     makeSrcEdge: (ninja, source, target) ->
         ninja.edge(target).from(source).using('copy')
         return [target]
-    makeAssetEdge: (ninja, source, target, releaseType) -> makeSrcEdge ninja, source, target
+    makeAssetEdge: (ninja, source, target, releaseType) -> @makeSrcEdge ninja, source, target
 
 }
 
 # JS and Coffee streamline factories
 makeStreamlineFactory = (name, ext, commandName) ->
     return {
+        initialize: (ninja, config, log) ->
+            @_command = getCommand config, log, commandName, name
+
         active: (config, log) ->
-            if @_command is undefined
-                @_command = getCommand config, log, commandName, name
             return @_command?
 
         assignments: (ninja, config) ->
@@ -203,9 +195,10 @@ makeAssetEdgeFn = (name) ->
 
 # Stylus compiler
 defineFactory "stylus", {
+    initialize: (ninja, config, log) ->
+        @_command = getCommand config, log, 'stylus'
+
     active: (config, log) ->
-        if @_command is undefined
-            @_command = getCommand config, log, 'stylus'
         return @_command?
 
     assignments: (ninja, config) ->
@@ -294,6 +287,7 @@ defineFactory "releasenote", {
             includeFile = "assets/releasenote/INCLUDE.json"
             @includes = JSON.parse(fs.readFileSync(includeFile, 'utf8')).include
         catch err
+            log.warn "Error parsing #{includeFile}", err.stack
             @includes = null
 
     active: (config, log) -> @includes != null
@@ -313,7 +307,7 @@ defineFactory "releasenote", {
 
             concatCli = "$uglifyjs $in #{if (releaseType is 'release') then '' else '-b '}-o $out"
             ninja.rule("concat-#{releaseType}")
-                .run(cli)
+                .run(concatCli)
                 .description "(#{releaseType}) CONCAT $folder"
 
         ninja.rule("json-merge")
@@ -367,7 +361,7 @@ defineFactory "releasenote", {
                 .from(i18nIncludes)
                 .using('json-merge')
 
-            paths = [
+            answer = answer.concat [
                 concatTemplateFile
                 concatI18nFile
             ]
