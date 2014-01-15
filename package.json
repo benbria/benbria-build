@@ -1,7 +1,11 @@
 {
   "name": "benbria-build",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benbria/benbria-build.git"
+  },
   "dependencies": {
     "argparse": "~0.1.15",
     "async": "0.2.9",

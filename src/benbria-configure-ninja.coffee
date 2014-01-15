@@ -66,51 +66,6 @@ makeSystemEdges = (ninja, optionString, options) ->
         .using('configure')
         .need([findCommand('loop-configure-ninja', config)])
 
-# Store the command line making functions.
-#
-makeCli = {}
-
-# Make a SASS compilation command line.
-#
-makeCli.sass = (isRelease) ->
-    # TODO: Need project-independent way to find sass.
-    cli = 'vendor/gem-bin/sass --compass $in $out'
-    cli += ' --sourcemap' unless isRelease
-    cli += ' --style compressed' if isRelease
-    cli += " && ruby #{findScript "sass-dep.rb", config} $in > $out.d"
-    cli
-
-# Make a Snockets compilation command line.
-#
-makeCli.snockets = (isRelease) ->
-    cli = "#{findLocalCommand 'snockets', config} $cliOptions $in -o $out --dep-file $out.d"
-    cli += ' --minify' if isRelease
-    cli += " && #{findLocalCommand 'i18n-extract', config}"
-    cli += ' -f \'(i18n)\' -k \'$$1\' $out > $out.i18n'
-    cli
-
-# Make a Template compilation command line.
-#
-makeCli.template = (isRelease) ->
-    cli = "$buildCoffee #{findScript "template-cc.coffee", config} $in -o $out"
-    cli += ' -i $out.i18n'
-    cli += if isRelease then '' else ' -g'
-    cli += ' -d $out.d $cliOptions'
-    cli
-
-# Make a Release compilation command line. The command is very similar
-# to the Template command, with the addition of giving the `template-cc` script a
-# `namespace` param
-#
-makeCli.releasenote = (isRelease) ->
-    # TODO: template-cc.coffee should be compiled and run from node, so we don't need coffee installed.
-    cli = "$buildCoffee #{findScript "template-cc.coffee", config} $in -o $out -n $namespace -s Handlebars.releasenotes"
-    cli += ' -i $out.i18n'
-    cli += if isRelease then '' else ' -g'
-    cli += ' -d $out.d $cliOptions'
-    cli
-
-
 # Make a simple Ninja rule.
 #
 # * `name` - The name of the rule.  This is a free-form text string.
@@ -138,34 +93,12 @@ makeSimpleRule = (ninja, {name, command, display}) ->
 # * `coffeeStreamline` and `jsStreamline`: Call the streamline compiler.
 #
 makeCommonRules = (ninja, options) ->
-    assetTypes = ['snockets', 'sass', 'template', 'releasenote']
-    assetTypes.forEach (ruleBaseName) ->
-        ['debug', 'release'].forEach (releaseType) ->
-            isTemplate = (ruleBaseName == 'template')
-            rule = ninja.rule("#{ruleBaseName}-#{releaseType}")
-            rule.run(makeCli[ruleBaseName](releaseType is 'release'))
-                .depfile('$out.d')
-                .description "(#{releaseType}) #{ruleBaseName.toUpperCase()}" \
-                           + if isTemplate then ' $folder' else ' $in'
-
     factories.forActiveFactory config, log, (factory) ->
         if factory.makeRules
             log.debug "Making rules for #{factory.name}"
             factory.makeRules ninja, config
 
     makeSimpleRule ninja, {name: 'copy', command: 'cp $in $out'}
-    makeSimpleRule ninja, {
-        name: 'concat-debug'
-        command: '$uglifyjs $in -b -o $out'
-    }
-    makeSimpleRule ninja, {
-        name: 'concat-release'
-        command: '$uglifyjs $in -o $out'
-    }
-    makeSimpleRule ninja, {
-        name: 'json-merge'
-        command: "$buildCoffee #{findScript "json-merge.coffee", config} $in -n -o $out"
-    }
     makeSimpleRule ninja, {
         name: 'fingerprint'
         command: """
@@ -183,13 +116,6 @@ edgeMapping = (ninja, files, mappingOptions, callback) ->
     ld.map globule.mapping(files, mappingOptions), (match) ->
         callback ninja.edge(match.dest).from(match.src)
         match.dest
-
-# Same as `edgeMapping`, but finding files from a pattern instead of being
-# given by the caller.
-#
-edgeFindMapping = (ninja, patterns, mappingOptions, callback) ->
-    files = globule.find(patterns, mappingOptions)
-    edgeMapping(ninja, files, mappingOptions, callback)
 
 # Create a simple mapping options object. This is a shorthand to avoid
 # repeating the same option names over and over.
@@ -212,136 +138,6 @@ makeLintEdges = (ninja, coffeeFiles) ->
         edge.using('coffeelint')
             .need(['.coffeelint'])
 
-# Make a typical asset-compilation mapping options object. `ext` is optional.
-#
-assetsMapOpt = (configName, ext) ->
-    simpleMapOpt fp.assets, "#{fp.buildAssets}/#{configName}", ext
-
-# Store the assets edge-making functions.
-#
-makeAssets = {}
-
-# Make edges in `ninja` to compile Coffee (with Snockets) assets from
-# `assets/js` to plain JS.
-#
-makeAssets.snockets = (ninja, patterns, configName) ->
-    options = assetsMapOpt configName, '.js'
-    edgeFindMapping ninja, patterns, options, (edge) ->
-        edge.using("snockets-#{configName}")
-
-# Make edges in `ninja` to copy simple assets.
-#
-makeAssets.copy = (ninja, patterns, configName) ->
-    options = assetsMapOpt configName
-    edgeFindMapping ninja, patterns, options, (edge) ->
-        edge.using('copy')
-
-# Make edges in `ninja` to compile Sass assets from `assets/sass` to CSS.
-#
-makeAssets.sass = (ninja, patterns, configName) ->
-    options = simpleMapOpt "#{fp.assets}/css",
-                           "#{fp.buildAssets}/#{configName}/css", '.css'
-    edgeFindMapping ninja, patterns, options, (edge) ->
-        edge.using("sass-#{configName}")
-        # disabled for now, because Ninja complains:
-        # "multiple outputs aren't (yet?) supported by depslog;
-        #  bring this up on the mailing list if it affects you"
-        # and depslog is more needed (for build speed).
-        #   .produce("#{edge.targets[0]}.map")
-
-# Make edges in `ninja` to compile template assets from `assets/template` to
-# JS. Those edges are a bit special since each compile a whole folder content
-# into a single JS file.
-#
-makeAssets.template = (ninja, patterns, configName) ->
-    options = simpleMapOpt "#{fp.assets}/template",
-                           "#{fp.buildAssets}/#{configName}/template", '.js'
-    ld.map globule.findMapping(patterns, options), (match) ->
-        ninja.edge(match.dest)
-             .from(glob.sync("#{match.src[0]}/[a-z0-9]*.jade"))
-             .using("template-#{configName}")
-             .assign('folder', match.src[0])
-        match.dest
-
-# Make an edge that will compile the releasenote templates into a specific namespace.
-#
-makeReleaseNoteTemplateEdge = (ninja, configName, match) ->
-    grabNamespace = new RegExp "#{fp.assets}/releasenote/([a-z]+)-.*\\.jade"
-    namespace = grabNamespace.exec(match.src[0])
-    unless namespace?
-        throw new Error '[Ninja][Edge][ReleaseNote]: releasenote does not follow naming convention'
-    namespace = namespace[1]
-
-    templateEdge = match.dest
-    i18nEdge = match.dest + '.i18n'
-
-    ninja.edge(templateEdge)
-        .from(match.src[0])
-        .using("releasenote-#{configName}")
-        .assign('namespace', namespace)
-
-    # TODO: add the .i18n files to the ninja graph.
-    # create a dummy edge, since the template-cc creates two files,
-    # the compiled js and its accompanying .i18n counterpart, ninja doesn't
-    # actually have an edge for the .i18n. This means we cannot create other
-    # edges that depend on it
-    ninja.edge(i18nEdge)
-        .from(match.src[0])
-        .after(templateEdge)
-
-    paths = [
-        templateEdge
-        i18nEdge
-    ]
-
-# Create edges that will concatenate the templates that every release note should have, and the
-# specific content templates, into one .js file. Also, concatenate the accompanying .i18n files into one
-# json file, as well.
-#
-makeReleaseNoteConcatEdge = (ninja, configName, match) ->
-    includeFile = "#{fp.assets}/releasenote/INCLUDE.json"
-    includes = JSON.parse(fs.readFileSync(includeFile, 'utf8')).include
-    includes = ld.map includes, (file) ->
-        file = path.join "#{fp.buildAssets}/#{configName}/releasenote", file
-    # we do not want to make a concatenated edge from the template file that is meant to be included.
-    return null if ld.contains includes, match.dest
-    bareTemplateEdge = match.dest
-    concatTemplateEdge = match.dest.replace(/.bare/, '.doc.js')
-    concati18nEdge = match.dest.replace(/.bare/, '.doc.js.i18n')
-
-    # we want to create a concatenated edge from some include templates,
-    # and the main content edge
-    includes.push bareTemplateEdge
-    ninja.edge(concatTemplateEdge)
-        .from(includes)
-        .using("concat-#{configName}")
-
-    i18nIncludes = ld.map includes, (f) -> f += '.i18n'
-    ninja.edge(concati18nEdge)
-        .from(i18nIncludes)
-        .using('json-merge')
-
-    paths = [
-        concatTemplateEdge
-        concati18nEdge
-    ]
-
-# Make edges in `ninja` to compile templates specifically for releasenotes from
-# `assets/releasenote`. These are special, as they need to be compiled from src->dest in a
-# one-to-one manner. As well, their naming convention determines what namespace they will be put
-# into in client-side js land. This lets client-side code grab only the release notes for particular apps.
-#
-makeAssets.releasenote = (ninja, patterns, configName) ->
-    options = simpleMapOpt "#{fp.assets}/releasenote",
-                           "#{fp.buildAssets}/#{configName}/releasenote", '.bare'
-    ld.map globule.findMapping(patterns, options), (match) ->
-        paths = []
-        templatePaths = makeReleaseNoteTemplateEdge ninja, configName, match
-        concatPaths = makeReleaseNoteConcatEdge ninja, configName, match
-        paths = paths.concat templatePaths
-        paths = paths.concat concatPaths if concatPaths?
-        paths
-
 # Make all the edges necessary to compile assets, like Styluses, Coffees, etc.
 # Assets are all contained into the root `/assets` folder.
 #
@@ -349,23 +145,12 @@ makeAssetEdges = (ninja) ->
     # Note: the patterns with only lowercase `a-z` will ignore all caps files
     # such as `README.md`
     assetPatterns = {
-        sass        : ['**/[a-z0-9]*.sass', '**/[a-z0-9]*.scss']
-        copy        : '**/[a-z0-9]*.js'
-        snockets    : 'js/**/[a-z0-9]*.coffee'
-        template    : '[a-z0-9]*'
         releasenote : '[a-z0-9]*.jade'
     }
     assetPaths = {}
     configNames = ['debug', 'release']
     for configName in configNames
         assetPaths[configName] = []
-        for name, makeAsset of makeAssets
-            paths = makeAsset(ninja, assetPatterns[name], configName)
-            paths = if ld.isArray paths then paths else [paths]
-            for p in paths
-                assetPaths[configName] = assetPaths[configName].concat p
-
-    for configName in configNames
         factories.forActiveFactory config, log, (factory) ->
             if factory.files and factory.makeAssetEdge
                 log.debug "Making asset edges for #{configName} - #{factory.name}"
@@ -379,15 +164,17 @@ makeAssetEdges = (ninja) ->
 
                 # Generate edges for each file
                 for match in globule.mapping(sourceFileNames, mappingOptions)
-                    factory.makeAssetEdge ninja, match.src, match.dest, configName
-                    assetPaths[configName].push match.dest
+                    edges = factory.makeAssetEdge ninja, match.src, match.dest, configName
+                    assetPaths[configName] = assetPaths[configName].concat edges
 
     ninja.edge('debug-assets').from(assetPaths.debug)
+
     if assetPaths.release.length > 0
         log.debug "Making fingerprint edge for #{assetPaths.release.length} release assets"
         fingerprintFile = makeFingerprintEdge ninja, assetPaths.release
         ninja.edge('release-assets').from(fingerprintFile)
     else
+        # No assets means no fingerprint file is required.
         ninja.edge('release-assets')
 
 # Make edges required for compiling everything in /src into /lib.
@@ -405,8 +192,8 @@ makeSourceEdges = (ninja) ->
 
             # Generate edges for each file
             for match in globule.mapping(sourceFileNames, mappingOptions)
-                factory.makeSrcEdge ninja, match.src, match.dest
-                destFiles.push match.dest
+                edges = factory.makeSrcEdge ninja, match.src, match.dest
+                destFiles = destFiles.concat edges
 
     ninja.edge('lib').from(destFiles)
 
@@ -435,7 +222,12 @@ collectCoffeeFiles = (ext, options) ->
 # Generate a proper `build.ninja` file for subsequent Ninja builds.
 #
 makeNinja = (options) ->
+
     ninja = ninjaBuilder('1.3', 'build')
+
+    factories.forActiveFactory config, log, (factory) ->
+        factory.initialize?(ninja, config, log)
+
     ninja.header warnMessage
     ninja.assign 'cliOptions', '--color' if options.ninjaColor
 
