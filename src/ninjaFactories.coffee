@@ -127,7 +127,7 @@ makeStreamlineFactory = (name, ext, commandName) ->
 
             ninja.rule(name)
                 .run("$#{name} #{config.streamlineOpts} #{streamlineOpts} $in")
-                .description "#{name.toUpperCase} $in"
+                .description "#{name.toUpperCase()} $in"
 
         files: "**/*#{ext}"
         makeSrcEdge: (ninja, source, target) ->

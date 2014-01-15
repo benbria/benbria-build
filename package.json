@@ -1,6 +1,6 @@
 {
   "name": "benbria-build",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "dependencies": {
     "argparse": "~0.1.15",
