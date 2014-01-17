@@ -8,6 +8,23 @@ located at the project root, by analysing the project structure. See the
 [Ninja manual](http://martine.github.io/ninja/manual.html) for more
 information about this file syntax.
 
+### Project Layout
+
+This assumes you have a project with the following file structure:
+
+* /
+  * /src - Server side source code goes here.  Every file here will be compiled into a .js and .map
+    file in /lib.  This can include .js, .coffee, ._js, ._coffee.
+  * /assets - Client side assets.  There are two different client side build types - debug and
+    release.  Build artifacts will end up in /build/assets/debug or /build/assets/release,
+    accordingly.
+    * /assets/js - Client side source code.  This can include .js, .coffee.  coffee files can
+      include snockets directives.  Any file that starts with an "_" will not be compiled - handy
+      for files that are included via snockets and not used independently.
+    * /assets/css - Client side CSS.  This can include .styl, .sass, .scss. (TODO: Would be nice if
+      we copied .css files.)
+    * /assets/template - Client side templates.  This is deprecated.
+
 ### Dependencies
 
 Your project should have any the following optional dependencies specified as dependencies or

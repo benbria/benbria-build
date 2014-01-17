@@ -144,9 +144,6 @@ makeLintEdges = (ninja, coffeeFiles) ->
 makeAssetEdges = (ninja) ->
     # Note: the patterns with only lowercase `a-z` will ignore all caps files
     # such as `README.md`
-    assetPatterns = {
-        releasenote : '[a-z0-9]*.jade'
-    }
     assetPaths = {}
     configNames = ['debug', 'release']
     for configName in configNames
