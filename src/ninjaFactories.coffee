@@ -42,7 +42,6 @@
 path = require 'path'
 ld   = require 'lodash'
 fs   = require 'fs'
-glob = require 'glob'
 {findCommandIfExists, findScript, findLocalCommand} = require './ninjaCommands'
 
 getCommand = (config, log, commandName, desc) ->
@@ -255,123 +254,6 @@ defineFactory "snockets", {
     makeAssetEdge: makeAssetEdgeFn 'snockets'
 
 }
-
-# template compiler
-defineFactory "template", {
-    makeRules: (ninja, config) ->
-        ['debug', 'release'].forEach (releaseType) ->
-            cli = "$buildCoffee #{findScript "template-cc.coffee", config} $in -o $out"
-            cli += ' -i $out.i18n'
-            cli += if (releaseType is 'release') then '' else ' -g'
-            cli += ' -d $out.d $cliOptions'
-
-            ninja.rule("template-#{releaseType}")
-                .run(cli)
-                .depfile('$out.d')
-                .description "(#{releaseType}) TEMPLATE $folder"
-
-    assetFiles: 'template/[a-z0-9]*'
-
-    makeAssetEdge:  (ninja, source, target, releaseType) ->
-        ninja.edge(target)
-            .from(glob.sync("#{source}/[a-z0-9]*.jade"))
-            .using("template-#{releaseType}")
-            .assign('folder', source)
-        return [target]
-}
-
-# releasenote compiler
-defineFactory "releasenote", {
-    initialize: (ninja, config, log) ->
-        @includes = null
-        try
-            includeFile = "assets/releasenote/INCLUDE.json"
-            if fs.existsSync includeFile
-                @includes = JSON.parse(fs.readFileSync(includeFile, 'utf8')).include
-            else
-                log.debug "Disabling releasenote - #{includeFile} does not exist."
-        catch err
-            log.warn "Error parsing #{includeFile}", err.stack
-
-    active: (config, log) -> @includes != null
-
-    makeRules: (ninja, config) ->
-        ['debug', 'release'].forEach (releaseType) ->
-            cli = "$buildCoffee #{findScript "template-cc.coffee", config} $in -o $out "
-            cli += "-n $namespace -s Handlebars.releasenotes"
-            cli += ' -i $out.i18n'
-            cli += if (releaseType is 'release') then '' else ' -g'
-            cli += ' -d $out.d $cliOptions'
-
-            ninja.rule("releasenote-#{releaseType}")
-                .run(cli)
-                .depfile('$out.d')
-                .description "(#{releaseType}) TEMPLATE $folder"
-
-            concatCli = "$uglifyjs $in #{if (releaseType is 'release') then '' else '-b '}-o $out"
-            ninja.rule("concat-#{releaseType}")
-                .run(concatCli)
-                .description "(#{releaseType}) CONCAT $folder"
-
-        ninja.rule("json-merge")
-            .run("$buildCoffee #{findScript "json-merge.coffee", config} $in -n -o $out")
-            .description "JSON-MERGE $folder"
-
-    assetFiles: 'releasenote/[a-z0-9]*.jade'
-    targetExt: '.bare'
-
-    makeAssetEdge:  (ninja, source, target, releaseType) ->
-        # Make the releasenote template edge
-        match = /\/releasenote\/([a-z]+)-.*\.jade/.exec(source)
-        if !match
-            throw new Error "[Ninja][Edge][ReleaseNote]: releasenote #{source} does not follow naming convention"
-
-        ninja.edge(target)
-            .from(source)
-            .using("releasenote-#{releaseType}")
-            .assign('namespace', match[1])
-
-        # Create a dummy edge, since the template-cc creates two files,
-        # the compiled js and its accompanying .i18n counterpart, ninja doesn't
-        # actually have an edge for the .i18n. This means we cannot create other
-        # edges that depend on it.
-        ninja.edge(target + '.i18n')
-            .from(source)
-            .after(target)
-
-        answer = [target, target + '.i18n']
-
-        # Create edges that will concatenate the templates that every release note should have,
-        # and the specific content templates, into one .js file. Also, concatenate the accompanying
-        # .i18n files into one json file, as well.
-        targetDir = path.dirname target
-        includes = ld.map @includes, (file) -> path.join targetDir, file
-
-        # We do not want to make a concatenated edge from the template file that is meant to be included.
-        if !ld.contains includes, target
-            includes.push target
-
-            # we want to create a concatenated edge from some include templates,
-            # and the main content edge
-            concatTemplateFile = target.replace(/.bare/, '.doc.js')
-            ninja.edge(concatTemplateFile)
-                .from(includes)
-                .using("concat-#{releaseType}")
-
-            concatI18nFile = target.replace(/.bare/, '.doc.js.i18n')
-            i18nIncludes = ld.map includes, (f) -> f += '.i18n'
-            ninja.edge(concatI18nFile)
-                .from(i18nIncludes)
-                .using('json-merge')
-
-            answer = answer.concat [
-                concatTemplateFile
-                concatI18nFile
-            ]
-
-        return answer
-}
-
 
 # Coffeelint tool
 defineFactory "coffeelint", {

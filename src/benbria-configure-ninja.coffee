@@ -220,7 +220,7 @@ collectCoffeeFiles = (ext, options) ->
 
 # Generate a proper `build.ninja` file for subsequent Ninja builds.
 #
-makeNinja = (options) ->
+makeNinja = (options, done) ->
 
     ninja = ninjaBuilder('1.3', 'build')
 
@@ -253,7 +253,7 @@ makeNinja = (options) ->
     ninja.edge('all').from(['debug-assets', 'release-assets', 'lib'])
     ninja.byDefault 'all'
 
-    return ninja
+    done null, ninja
 
 # Build the option string that was used to run this instance of benbria-configure-ninja.
 getOptionString = (options) ->
@@ -263,6 +263,7 @@ getOptionString = (options) ->
     str += ' --streamline8' if options.streamline8
     str += " --streamline-opts '#{options.streamlineOpts}'" if options.streamlineOpts
     str += " --stylus-opts '#{options.stylusOpts}'" if options.stylusOpts
+    str += " --require '#{options.require}'" if options.require
     return str
 
 
@@ -276,6 +277,10 @@ getOptions = ->
         description: """
             Generates a ninja.build file for a coffeescript project.
             """
+
+    parser.addArgument [ '--require' ],
+        help: "Comma delimited list of modules before building."
+        nargs: "?"
 
     parser.addArgument [ '--verbose' ],
         help: "Verbose output"
@@ -330,8 +335,10 @@ getOptions = ->
 
 # Entry point. Build the Ninja manifest and save it.
 #
-module.exports = (loopConfigureNinjaScript) ->
-    config.configureNinjaScript = loopConfigureNinjaScript
+# `configureNinjaScript` is the full path to the binary to run to configure ninja.
+#
+module.exports = (configureNinjaScript) ->
+    config.configureNinjaScript = configureNinjaScript
 
     options = getOptions()
 
@@ -339,7 +346,13 @@ module.exports = (loopConfigureNinjaScript) ->
     config.streamlineOpts = options.streamlineOpts
     config.stylusOpts = options.stylusOpts
 
-    ninja = makeNinja(options)
-    ninjaFile = path.resolve(config.ninjaFilePath, config.ninjaFile)
-    ninja.save ninjaFile
-    log.info "generated \'#{ninjaFile}\' (#{ninja.ruleCount} rules, #{ninja.edgeCount} edges)"
+    if options.require
+        for mod in options.require.split(',')
+            if mod.indexOf('./') == 0 then mod = path.resolve mod
+            require mod
+
+    makeNinja options, (err, ninja) ->
+        throw err if err
+        ninjaFile = path.resolve(config.ninjaFilePath, config.ninjaFile)
+        ninja.save ninjaFile
+        log.info "generated \'#{ninjaFile}\' (#{ninja.ruleCount} rules, #{ninja.edgeCount} edges)"
