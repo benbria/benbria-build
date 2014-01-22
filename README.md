@@ -21,7 +21,7 @@ This assumes you have a project with the following file structure:
     * /assets/js - Client side source code.  This can include .js, .coffee.  coffee files can
       include snockets directives.  Any file that starts with an "_" will not be compiled - handy
       for files that are included via snockets and not used independently.
-    * /assets/css - Client side CSS.  This can include .styl, .sass, .scss. (TODO: Would be nice if
+    * /assets/css - Client side CSS, right not being .styl. (TODO: Would be nice if
       we copied .css files.)
     * /assets/template - Client side templates.  This is deprecated.
 
@@ -58,7 +58,7 @@ This will generate a ninja file with the following edges:
   Any files which start with an "_" will be excluded from the build:
 
   * `assets/js/*.coffee`, `assets/js/*.js` - Javascript: These will be compiled with snockets support.
-  * `assets/*.sass`, `assets/*.scss`, `assets/*.styl` - CSS.
+  * `assets/*.styl` - CSS.
   * `assets/template/*/*.jade` - Handlebars/jade templates.
   * `assets/releasenote/*.jade` - Handlebars/jade templates.
   * `release-assets` - Same as `debug-assets` except compiled files go into build/assets/release.

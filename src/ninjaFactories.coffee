@@ -218,25 +218,6 @@ defineFactory "stylus", {
 
 }
 
-# SASS compiler
-defineFactory "sass", {
-    assignments: (ninja, config) ->
-        # TODO: Should detect existence of vendor/gem-bin-sass
-        ninja.assign 'sass', 'vendor/gem-bin/sass'
-
-    makeRules: (ninja, config) ->
-        ['debug', 'release'].forEach (releaseType) ->
-            cli = '$sass --compass $in $out'
-            cli += if releaseType is 'release' then ' --style compressed' else ' --sourcemap'
-            cli += " && ruby #{findScript "sass-dep.rb", config} $in > $out.d"
-            makeAssetRule ninja, 'sass', releaseType, cli
-
-    assetFiles: ['css/**/[a-z0-9]*.sass', 'css/**/[a-z0-9]*.scss']
-    targetExt: '.css'
-    makeAssetEdge: makeAssetEdgeFn 'sass'
-
-}
-
 # snockets compiler
 defineFactory "snockets", {
     assignments: (ninja, config) ->
