@@ -107,6 +107,28 @@ Then when you run benbria-configure-ninja:
 
     benbria-configure-ninja --require './ninjaConfig.coffee'
 
+There's also built-in support for browserify:
+
+    # Browserify bundle for reporting
+    defineBrowserifyFactory "inbox",
+        "browserify/inbox/inbox.coffee",
+        "inbox/inbox.js", {
+            extensions: ['.coffee', '.jade']
+            transforms: [
+                'coffeeify'
+                'browserify-jade'
+                'aliasify'
+                'includify'
+                'rfolderify'
+                'debowerify'
+            ]
+        }
+
+This will read assets/browserify/inbox/inbox.coffee, and compile it to
+build/assets/[buildtype]/js/inbox/inbox.js.  i18n-extractor is automatically run on the output,
+and in debug mode a dependencies file is built, so ninja will know whether or not your js file
+needs rebuilding.
+
 
 ### Future improvements:
 
