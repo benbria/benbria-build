@@ -32,7 +32,7 @@ This assumes you have a project with the following file structure:
     * /assets/js - Client side source code.  This can include .js, .coffee.  coffee files can
       include snockets directives.  Any file that starts with an "_" will not be compiled - handy
       for files that are included via snockets and not used independently.
-    * /assets/css - Client side CSS.  This can include .styl, .sass, .scss. (TODO: Would be nice if
+    * /assets/css - Client side CSS, right not being .styl. (TODO: Would be nice if
       we copied .css files.)
 
 ### Dependencies
@@ -68,7 +68,7 @@ This will generate a ninja file with the following edges:
   Any files which start with an "_" will be excluded from the build:
 
   * `assets/js/*.coffee`, `assets/js/*.js` - Javascript: These will be compiled with snockets support.
-  * `assets/*.sass`, `assets/*.scss`, `assets/*.styl` - CSS.
+  * `assets/*.styl` - CSS.
 
 * `release-assets` - Same as `debug-assets` except compiled files go into build/assets/release.
   Also this will run all files through the "fingerprint" process., producing a
@@ -83,23 +83,22 @@ bundle as part of the build, create a file called `ninjaConfig.coffee`:
     {defineFactory} = require 'benbria-build'
 
     # Browserify bundle
-    defineFactory "browserify-bundle", {
+    defineFactory "foo-bundle", {
         makeRules: (ninja, config) ->
             ['debug', 'release'].forEach (releaseType) ->
-                cli = "$buildCoffee ./assets/browserify/doBundle.coffee -o $out"
+                cli = "$buildCoffee ./assets/foo/doBuild.coffee -o $out"
                 cli += if (releaseType is 'release') then '' else ' --debug'
 
-                ninja.rule("browserify-#{releaseType}")
+                ninja.rule("foo-#{releaseType}")
                     .run(cli)
                     .description "(#{releaseType}) BROWSERIFY $in"
 
-        assetFiles: 'browserify/src/main.coffee'
+        assetFiles: 'foo/src/foo.coffee'
 
         makeAssetEdge:  (ninja, source, target, releaseType) ->
-            target = "build/assets/#{releaseType}/js/main.js"
             ninja.edge(target)
                 .from(source)
-                .using("browserify-#{releaseType}")
+                .using("foo-#{releaseType}")
             return [target]
     }
 
