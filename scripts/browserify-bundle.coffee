@@ -24,7 +24,11 @@ writeI18nFile = (file, source, done) ->
     for warning in warnings
         console.log "WARNING: writing #{file} - #{warning}"
 
-    fs.writeFile file, JSON.stringify(result), (err) ->
+    answer = {i18n:[]}
+    if result.i18n
+        for key of result.i18n
+            answer.i18n.push key
+    fs.writeFile file, JSON.stringify(answer), (err) ->
         return done err if err
         done()
 
