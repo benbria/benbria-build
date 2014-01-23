@@ -66,9 +66,7 @@ exports.bundle = (target, sources, options, done) ->
 
     browserifyOptions = options.browserifyOptions or {}
     if options.deps
-        console.log "Setting up pack"
         origPack = browserifyOptions.pack
-        console.log origPack
         browserifyOptions.pack = (params) ->
             params.raw = true
             params.sourceMapPrefix = '//#'
@@ -165,7 +163,6 @@ parseArgs = () ->
     return args
 
 args = parseArgs()
-console.log args
 
 options = {
     debug: args.debug
