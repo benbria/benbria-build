@@ -33,7 +33,8 @@ writeI18nFile = (file, source, done) ->
         done()
 
 relativeToCwd = (file, basedir) ->
-    file = path.resolve basedir, file
+    if options.basedir
+        file = path.resolve basedir, file
     return path.relative process.cwd(), file
 
 # Write a gcc style dependencies file for the bundle.
