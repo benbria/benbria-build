@@ -1,6 +1,6 @@
 {
   "name": "benbria-build",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/benbria/benbria-build.git"
@@ -9,7 +9,7 @@
   "dependencies": {
     "argparse": "~0.1.15",
     "async": "0.2.9",
-    "coffee-script": "~1.7.0",
+    "coffee-script": "git://github.com/benbria/coffee-script.git#38bd879a9abaa6a86504ecb469eb4d7188edf22f",
     "coffeelint": "0.5.7",
     "colors": "~0.6.0-1",
     "commander": "~2.1.0",
