@@ -49,7 +49,8 @@ Your project should have any the following optional dependencies specified as de
 devDependencies in it's project.json, and installed in the node_modules folder.  All of these are
 optional; so long as you don't need the specified feature, you don't need them installed:
 
-* coffee-script - Required for building .coffee files.
+* coffee-script - Required for building .coffee files in /src.
+* snockets-cli - Required for building coffee files in /assets.
 * streamline - Required for building ._js and ._coffee files in /src.  If you are
   using < 0.10.x, then make sure you pass `--streamline8` to `build-configure-ninja`.  You can also
   use `--streamline-opts '--cb _cb'` to set whatever extra streamline options you want.  Streamline

@@ -219,8 +219,14 @@ defineFactory "stylus", {
 
 # snockets compiler
 defineFactory "snockets", {
+    initialize: (ninja, config, log) ->
+        @_command = getCommand config, log, 'snockets'
+
+    active: (config, log) ->
+        return @_command?
+
     assignments: (ninja, config) ->
-        ninja.assign 'snockets', findLocalCommand 'snockets', config
+        ninja.assign 'snockets', @_command, config
 
     makeRules: (ninja, config) ->
         ['debug', 'release'].forEach (releaseType) ->
