@@ -10,8 +10,6 @@
 
 packageJson     = require '../package.json'
 ld              = require 'lodash'
-commander       = require 'commander'
-fs              = require 'fs'
 path            = require 'path'
 glob            = require 'glob'
 globule         = require 'globule'
@@ -267,7 +265,7 @@ getOptionString = (options) ->
     return str
 
 
-# Get configure options using commander.js.
+# Get configure options.
 #
 getOptions = ->
     ArgumentParser = require('argparse').ArgumentParser
