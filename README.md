@@ -142,6 +142,16 @@ build/assets/[buildtype]/js/inbox/inbox.js.  i18n-extractor is automatically run
 and in debug mode a dependencies file is built, so ninja will know whether or not your js file
 needs rebuilding.  For release mode, the bundle is automatically minified using uglify-js.
 
+## Handy Tips
+
+Run:
+
+    scripts/browserify-bundle.coffee \
+      --transforms 'coffeeify,browserify-jade' \
+      --show myFile.coffee
+
+to see what a set of transforms is going to do to a source file.
+
 ## Future improvements:
 
 * Should support streamline in /assets.
