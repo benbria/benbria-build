@@ -136,6 +136,9 @@ parseArgs = () ->
         nargs: 0
         action: 'storeTrue'
 
+    parser.addArgument [ '--show' ],
+        help: "Show the source generated for a file after it has been transformed."
+
     parser.addArgument [ '--out', '-o' ],
         help: "Output file."
         nargs: "?"
@@ -156,35 +159,49 @@ parseArgs = () ->
 
     parser.addArgument [ 'input' ],
         help: "Files to compile."
-        nargs: "+"
+        nargs: "*"
 
     args = parser.parseArgs()
 
-    if !args.out
+    if !args.out and !args.show
         parser.printUsage()
         console.log "error: --out required"
         process.exit 1
 
+    if !args.show and args.input.length is 0
+        parser.printUsage()
+        console.log "Must specify at least one input file."
+        process.exit 1
+
     return args
 
-args = parseArgs()
+do ->
+    args = parseArgs()
 
-options = {
-    debug: args.debug
-    i18n: args.i18n
-    deps: args.deps
-}
-if args.transforms
-    options.transforms = args.transforms.split(',').map (t) -> require t
-if args.extensions
-    options.browserifyOptions ?= {}
-    options.browserifyOptions.extensions = args.extensions.split ','
+    options = {
+        debug: args.debug
+        i18n: args.i18n
+        deps: args.deps
+    }
+    if args.transforms
+        options.transforms = args.transforms.split(',').map (t) -> require t
+    if args.extensions
+        options.browserifyOptions ?= {}
+        options.browserifyOptions.extensions = args.extensions.split ','
 
-start = new Date()
-exports.bundle args.out, args.input, options, (err) ->
-    if err
-        console.log "Error while building #{args.out}", err.stack
-        process.exit 1
+    if args.show?
+        fileName = args.show
+        input = fs.createReadStream fileName
+        for transform in options.transforms
+            input = input.pipe transform(fileName)
+        input.pipe process.stdout
+
     else
-        console.log "Finished building #{args.out} in #{(new Date() - start)/1000} seconds"
+        start = new Date()
+        exports.bundle args.out, args.input, options, (err) ->
+            if err
+                console.log "Error while building #{args.out}", err.stack
+                process.exit 1
+            else
+                console.log "Finished building #{args.out} in #{(new Date() - start)/1000} seconds"
 
