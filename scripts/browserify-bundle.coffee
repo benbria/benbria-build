@@ -33,7 +33,7 @@ writeI18nFile = (file, source, done) ->
         done()
 
 relativeToCwd = (file, basedir) ->
-    if options.basedir
+    if basedir
         file = path.resolve basedir, file
     return path.relative process.cwd(), file
 
