@@ -207,7 +207,7 @@ defineFactory "stylus", {
         ['debug', 'release'].forEach (releaseType) ->
             cli = "$stylus $in -o $$(dirname $out) #{config.stylusOpts}"
             cli += if releaseType is 'release' then ' --compress' else ' --line-numbers'
-            cli += " > /dev/null && $buildCoffee #{findScript "stylus-dep.coffee", config} $in"
+            cli += " > /dev/null && $node #{findScript "stylus-dep.js", config} $in"
             cli += ' --dep-file $out.d $cliOptions'
             makeAssetRule ninja, 'stylus', releaseType, cli
 
@@ -248,7 +248,7 @@ defineFactory "coffeelint", {
         return !config.noLint
 
     assignments: (ninja, config) ->
-        ninja.assign 'coffeelint', "$buildCoffee #{findScript "coffeelint.coffee", config}"
+        ninja.assign 'coffeelint', "$node #{findScript "coffeelint.js", config}"
 
     makeRules: (ninja, config) ->
         ninja.rule("coffeelint")

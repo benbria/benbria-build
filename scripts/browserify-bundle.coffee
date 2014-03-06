@@ -5,6 +5,7 @@ i18nExtractor       = require 'i18n-extractor'
 browserPackWithDeps = require 'browser-pack-with-deps'
 ArgumentParser      = require('argparse').ArgumentParser
 {minify}            = require 'uglify-js'
+require('coffee-script').register()
 
 
 # Given a filename and source read from that file, writes "#{file}.i18n" with all string that

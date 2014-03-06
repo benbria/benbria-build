@@ -27,7 +27,7 @@ parentDirSync = (dir, fileToFind) ->
 #
 exports.findScript = (scriptName, options={}) ->
     # Look for this script in the scripts dir
-    scriptsDir = path.resolve __dirname, path.join("..", "scripts")
+    scriptsDir = path.resolve __dirname, path.join("..", "lib/scripts")
     scriptFullPath = path.resolve scriptsDir, scriptName
     if !fs.existsSync scriptFullPath
         throw new Error("Could not find script #{scriptName}")
