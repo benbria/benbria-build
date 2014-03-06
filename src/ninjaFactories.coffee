@@ -205,10 +205,10 @@ defineFactory "stylus", {
 
     makeRules: (ninja, config) ->
         ['debug', 'release'].forEach (releaseType) ->
-            cli = "$stylus $in -o $$(dirname $out) #{config.stylusOpts}"
+            cli = "$node #{findScript "stylus-dep.js", config} $in --print #{config.stylusOpts}"
             cli += if releaseType is 'release' then ' --compress' else ' --line-numbers'
-            cli += " > /dev/null && $node #{findScript "stylus-dep.js", config} $in"
-            cli += ' --dep-file $out.d $cliOptions'
+            cli += ' --dep-file $out.d'
+            cli += ' > $out'
             makeAssetRule ninja, 'stylus', releaseType, cli
 
     assetFiles: '**/[a-z0-9]*.styl'
