@@ -37,7 +37,7 @@ This assumes you have a project with the following file structure:
   * /assets/js - Client side source code.  This can include .js, .coffee.  coffee files can
     include snockets directives.  Any file that starts with an "_" will not be compiled - handy
     for files that are included via snockets and not used independently.
-  * /assets/css - Client side CSS, right not being .styl. (TODO: Would be nice if
+  * /assets/css - Client side CSS, right now being .styl. (TODO: Would be nice if
     we copied .css files.)
 
 By convention we put browserify bundles in assets/browserify.  (We don't put them in assets/js,
