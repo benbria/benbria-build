@@ -16,7 +16,7 @@ exports.defineBrowserifyFactory = (name, sourceFile, targetFile, options) ->
     exports.defineFactory "browserify-#{name}", {
         makeRules: (ninja, config) ->
             ['debug', 'release'].forEach (releaseType) ->
-                cli = "$buildCoffee #{findScript 'browserify-bundle.coffee'}"
+                cli = "$node #{findScript 'browserify-bundle.js'}"
                 if options.extensions then cli += " --extensions '#{options.extensions.join ","}'"
                 if options.transforms then cli += " --transforms '#{options.transforms.join ","}'"
                 cli += " --out $out --i18n $out.i18n"
