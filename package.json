@@ -29,8 +29,8 @@
     "node": ">=0.8.26"
   },
   "scripts": {
-    "prepublish": "cake build",
-    "build": "cake build"
+    "prepublish": "cake build && cake scripts",
+    "build": "cake build && cake scripts"
   },
   "bin": {
     "benbria-configure-ninja": "./bin/benbria-configure-ninja"

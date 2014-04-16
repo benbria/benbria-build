@@ -127,23 +127,24 @@ makeStreamlineFactory = (name, ext, commandName) ->
     return {
         initialize: (ninja, config, log) ->
             @_command = getCommand config, log, commandName, name
+            @oldStreamline = config.streamlineVersion < 10
 
         active: (config, log) ->
             return @_command?
 
         assignments: (ninja, config) ->
-            if config.streamlineVersion < 10
+            if @oldStreamline
                 ninja.assign name, "node --harmony #{@_command}"
             else
                 ninja.assign name, @_command
 
         makeRules: (ninja, config) ->
-            if config.streamlineVersion < 10
+            if @oldStreamline
                 # No source-maps for streamline.  You can add `--source-map $mapFile` here, but
                 # streamline will often crash in 0.8.0.
                 streamlineOpts = "-lp -c"
             else
-                streamlineOpts = "-m -lp -c"
+                streamlineOpts = "-m -o $outDir -f -c"
 
             ninja.rule(name)
                 .run("$#{name} #{config.streamlineOpts} #{streamlineOpts} $in")
@@ -154,18 +155,25 @@ makeStreamlineFactory = (name, ext, commandName) ->
         makeSrcEdge: (ninja, source, target) ->
             targetDir = path.dirname target
             base = path.basename target, ".js"
-            buildSource = path.join targetDir, "#{base}#{path.extname source}"
-            mapFile = path.join targetDir, "#{base}.map"
+            if @oldStreamline
+                buildSource = path.join targetDir, "#{base}#{path.extname source}"
+                mapFile = path.join targetDir, "#{base}.map"
 
-            # Streamline only compiles files in-place, so make one edge to copy the
-            # streamline file to the build dir...
-            ninja.edge(buildSource).from(source).using("copy")
+                # Streamline only compiles files in-place, so make one edge to copy the
+                # streamline file to the build dir...
+                ninja.edge(buildSource).from(source).using("copy")
 
-            # Make another edge to compile the file in the build dir.
-            ninja.edge(target)
-                .from(buildSource)
-                .using(name)
-                .assign("mapFile", mapFile)
+                # Make another edge to compile the file in the build dir.
+                ninja.edge(target)
+                    .from(buildSource)
+                    .using(name)
+                    .assign("mapFile", mapFile)
+            else
+                # New streamline (as of 0.10.9) supports the -o option.
+                ninja.edge(target)
+                    .from(source)
+                    .using(name)
+                    .assign('outDir', path.dirname target)
             return [target]
     }
 

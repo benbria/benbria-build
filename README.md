@@ -52,9 +52,10 @@ optional; so long as you don't need the specified feature, you don't need them i
 * coffee-script - Required for building .coffee files in /src.
 * snockets-cli - Required for building coffee files in /assets.
 * streamline - Required for building ._js and ._coffee files in /src.  If you are
-  using < 0.10.x, then make sure you pass `--streamline8` to `build-configure-ninja`.  You can also
-  use `--streamline-opts '--cb _cb'` to set whatever extra streamline options you want.  Streamline
-  is not currently supported for files in /assets/js.
+  using < 0.10.x, then make sure you pass `--streamline8` to `build-configure-ninja`. Otherwise,
+  streamline 0.10.9 or newer is required.  You can also use `--streamline-opts '--cb _cb'` to set
+  whatever extra streamline options you want.  Streamline is not currently supported for files in
+  /assets/js.
 * stylus - required for building .styl files.  You can use
   `--stylus-opts '--import node_modules/nib/index.styl'` to set arbitrary extra stylus options.
 * browserify - Required for building browserify bundles.  Note that in debug builds, benbria-build
