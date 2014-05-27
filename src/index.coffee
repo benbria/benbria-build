@@ -1,5 +1,54 @@
-ninjaFactories = require './ninjaFactories'
-{findScript} = require './ninjaCommands'
+ninjaFactories  = require './ninjaFactories'
+{findScript}    = require './ninjaCommands'
+_               = require 'lodash'
+log             = require('yadsil')('index')
+glob            = require 'glob'
+
+# Collect all the coffee files across the project.
+#
+# This is used for linting purposes.
+#
+collectCoffeeFiles = ({extensions, paths}) ->
+    log.info 'looking for coffee script files..'
+    extensionMark = '$ext'
+    _.chain(paths)
+    .map((path) ->
+        extensions.map (ext) -> path.replace extensionMark, ext
+    )
+    .flatten()
+    .map((path) ->
+        glob.sync path
+    )
+    .flatten()
+    .value()
+
+# Default lint options to use on projects with the assumed directory
+# structure. They can be overridden via the `configureCoffeelint` below
+#
+defaultLintOptions = {
+    extensions: [
+        'coffee'
+        '_coffee'
+    ]
+    paths: [
+        'src/**/*.$ext'
+        'assets/js/**/*.$ext'
+        'bin/**/*.$ext'
+        'Gruntfile.$ext'
+    ]
+}
+
+setLintOptions = null
+
+# Expose the option to override default coffeelint paths.
+#
+exports.configureCoffeelint = (options) ->
+    setLintOptions = options
+
+# Collect all the coffee files to lint based on the currently set options
+#
+exports.getCoffeelintPaths = ->
+    collectCoffeeFiles setLintOptions ? defaultLintOptions
 
 # Register a factory.  See ninjaFactories.coffee for details.
 exports.defineFactory = ninjaFactories.defineFactory

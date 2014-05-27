@@ -15,9 +15,9 @@ glob            = require 'glob'
 globule         = require 'globule'
 log             = require('yadsil')('benbria-configure-ninja')
 ninjaBuilder    = require 'ninja-build-gen'
-
 factories       = require './ninjaFactories'
 {findCommand, findLocalCommand, findScript} = require './ninjaCommands'
+{getCoffeelintPaths} = require './index'
 
 # Fix yadsil to behave like other logs
 log.warn = log.warning
@@ -204,20 +204,6 @@ makeFingerprintEdge = (ninja, assetsEdges) ->
          .assign('basePath', "#{fp.buildAssets}/release")
     fp.fingerprintFile
 
-# Collect all the coffee files across the project.
-#
-# This is used for linting purposes.
-#
-collectCoffeeFiles = (ext, options) ->
-    log.info 'looking for coffee script files..'
-    coffeeFiles = [].concat \
-        glob.sync("src/**/*.#{ext}"),
-        glob.sync("assets/js/**/*.#{ext}"),
-        glob.sync("bin/**/*.#{ext}"),
-        glob.sync("Gruntfile.#{ext}")
-    log.info "found #{coffeeFiles.length} #{ext} scripts"
-    coffeeFiles
-
 # Generate a proper `build.ninja` file for subsequent Ninja builds.
 #
 makeNinja = (options, done) ->
@@ -234,8 +220,7 @@ makeNinja = (options, done) ->
     makeCommonRules ninja, options
 
     if !options.noLint
-        files = collectCoffeeFiles('coffee', options).concat \
-                collectCoffeeFiles('_coffee', options)
+        files = getCoffeelintPaths()
         ninja.edge('lint').from makeLintEdges(ninja, files)
     else
         # Make a dummy lint edge so we can still run 'ninja lint'.
