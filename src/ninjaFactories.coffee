@@ -42,6 +42,9 @@
 path = require 'path'
 ld   = require 'lodash'
 fs   = require 'fs'
+log  = require('yadsil')('ninjaFactories')
+glob = require 'glob'
+_    = require 'lodash'
 {findCommandIfExists, findScript, findLocalCommand} = require './ninjaCommands'
 
 getCommand = (config, log, commandName, desc) ->
@@ -250,6 +253,55 @@ defineFactory "snockets", {
 
 }
 
+# Default lint options to use on projects with the assumed directory
+# structure. They can be overridden via the `configureCoffeelint` below
+#
+defaultLintOptions = {
+    extensions: [
+        'coffee'
+        '_coffee'
+    ]
+    paths: [
+        'src/**/*.$ext'
+        'assets/js/**/*.$ext'
+        'bin/**/*.$ext'
+        'Gruntfile.$ext'
+    ]
+    configFile: null
+}
+
+setLintOptions = null
+
+# Expose the option to override default coffeelint paths.
+#
+exports.configureCoffeelint = (options) ->
+    setLintOptions = options
+
+getCoffeelintConfig = exports.getCoffeelintConfig = -> return setLintOptions ? defaultLintOptions
+
+# Collect all the coffee files across the project.
+#
+# This is used for linting purposes.
+#
+collectCoffeeFiles = ({extensions, paths}) ->
+    log.info 'looking for coffee script files..'
+    extensionMark = '$ext'
+    _.chain(paths)
+    .map((path) ->
+        extensions.map (ext) -> path.replace extensionMark, ext
+    )
+    .flatten()
+    .map((path) ->
+        glob.sync path
+    )
+    .flatten()
+    .value()
+
+exports.getCoffeelintPaths = ->
+    collectCoffeeFiles getCoffeelintConfig()
+
+# Collect all the coffee files to lint based on the currently set options
+#
 # Coffeelint tool
 defineFactory "coffeelint", {
     active: (config, log) ->
@@ -259,7 +311,13 @@ defineFactory "coffeelint", {
         ninja.assign 'coffeelint', "$node #{findScript "coffeelint.js", config}"
 
     makeRules: (ninja, config) ->
+        coffeelintConfigFile = getCoffeelintConfig().configFile
+        coffeelintConfigFileOptions = if coffeelintConfigFile?
+            "-c #{coffeelintConfigFile} "
+        else
+            ""
+
         ninja.rule("coffeelint")
-            .run("$coffeelint $cliOptions $in && touch $out")
+            .run("$coffeelint $cliOptions #{coffeelintConfigFileOptions} $in && touch $out")
             .description "COFFEELINT $in"
 }

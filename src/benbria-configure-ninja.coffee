@@ -17,7 +17,6 @@ log             = require('yadsil')('benbria-configure-ninja')
 ninjaBuilder    = require 'ninja-build-gen'
 factories       = require './ninjaFactories'
 {findCommand, findLocalCommand, findScript} = require './ninjaCommands'
-{getCoffeelintPaths} = require './index'
 
 # Fix yadsil to behave like other logs
 log.warn = log.warning
@@ -136,6 +135,8 @@ makeLintEdges = (ninja, coffeeFiles) ->
     options = simpleMapOpt '.', '$builddir/coffeelint', '.coffeelint'
     edgeMapping ninja, coffeeFiles, options, (edge) ->
         edge.using('coffeelint')
+        if factories.getCoffeelintConfig().configFile?
+            edge.need([factories.getCoffeelintConfig().configFile])
 
 # Make all the edges necessary to compile assets, like Styluses, Coffees, etc.
 # Assets are all contained into the root `/assets` folder.
@@ -219,7 +220,7 @@ makeNinja = (options, done) ->
     makeCommonRules ninja, options
 
     if !options.noLint
-        files = getCoffeelintPaths()
+        files = factories.getCoffeelintPaths()
         ninja.edge('lint').from makeLintEdges(ninja, files)
     else
         # Make a dummy lint edge so we can still run 'ninja lint'.
