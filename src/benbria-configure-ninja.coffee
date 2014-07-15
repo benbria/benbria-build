@@ -136,7 +136,6 @@ makeLintEdges = (ninja, coffeeFiles) ->
     options = simpleMapOpt '.', '$builddir/coffeelint', '.coffeelint'
     edgeMapping ninja, coffeeFiles, options, (edge) ->
         edge.using('coffeelint')
-            .need(['.coffeelint'])
 
 # Make all the edges necessary to compile assets, like Styluses, Coffees, etc.
 # Assets are all contained into the root `/assets` folder.

@@ -260,6 +260,6 @@ defineFactory "coffeelint", {
 
     makeRules: (ninja, config) ->
         ninja.rule("coffeelint")
-            .run("$coffeelint $cliOptions -c .coffeelint $in && touch $out")
+            .run("$coffeelint $cliOptions $in && touch $out")
             .description "COFFEELINT $in"
 }
