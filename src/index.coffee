@@ -24,7 +24,7 @@ exports.defineBrowserifyFactory = (name, sourceFile, targetFile, options) ->
                 cli = "$node #{findScript 'browserify-bundle.js'}"
                 if options.extensions then cli += " --extensions '#{options.extensions.join ","}'"
                 # Alias `options.transforms` to `options.transform` to support older configs.
-                transforms = options.transform ? options.transform
+                transforms = options.transform ? options.transforms
                 if transforms then cli += " --transforms '#{transforms.join ","}'"
                 if options.insertGlobals then cli += " --insert-globals"
                 for np in (options.noparse or [])
