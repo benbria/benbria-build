@@ -131,7 +131,7 @@ defineBrowserifyFactory "inbox",
     "browserify/inbox/inbox.coffee",
     "inbox/inbox.js", {
         extensions: ['.coffee', '.jade']
-        transforms: [
+        transform: [
             'coffeeify'
             'browserify-jade'
             'aliasify'
