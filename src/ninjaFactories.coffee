@@ -76,6 +76,10 @@ exports.forEachFactory = (fn) ->
     for factory in allFactories
         fn(factory)
 
+# Run a filter fn on the factories to remove some
+exports.filterFactories = (fn) ->
+    allFactories = allFactories.filter fn
+
 # Run a command for every factory available.
 exports.forActiveFactory = (config, log, fn) ->
     for factory in allFactories
