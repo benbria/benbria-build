@@ -210,6 +210,11 @@ makeNinja = (options, done) ->
 
     ninja = ninjaBuilder('1.3', 'build')
 
+    if options.disableStreamline
+        log.warn 'disabling streamline as requested.'
+        factories.filterFactories (factory) ->
+            !(/streamline/i.test(factory.name))
+
     factories.forEachFactory (factory) ->
         factory.initialize?(ninja, config, log)
 
@@ -295,6 +300,12 @@ getOptions = ->
         dest: "streamlineOpts"
         defaultValue: ''
 
+    parser.addArgument [ '--disable-streamline' ],
+        help: "Turn off streamline compiling completely"
+        metavar: "opts"
+        dest: "disableStreamline"
+        action: 'storeTrue'
+
     parser.addArgument [ '--stylus-opts' ],
         help: "Extra options for stylus"
         metavar: "opts"
@@ -329,6 +340,7 @@ module.exports = (configureNinjaScript) ->
 
     if options.streamline8 then config.streamlineVersion = 8
     config.streamlineOpts = options.streamlineOpts
+    config.disableStreamline = options.disableStreamline
     config.stylusOpts = options.stylusOpts
 
     if options.require
