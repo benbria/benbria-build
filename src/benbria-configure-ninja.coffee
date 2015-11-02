@@ -252,6 +252,7 @@ getOptionString = (options) ->
     str += ' --ninja-color' if options.ninjaColor
     str += ' --streamline8' if options.streamline8
     str += " --streamline-opts '#{options.streamlineOpts}'" if options.streamlineOpts
+    str += ' --disable-streamline' if options.disableStreamline
     str += " --stylus-opts '#{options.stylusOpts}'" if options.stylusOpts
     str += " --require '#{options.require}'" if options.require
     return str
